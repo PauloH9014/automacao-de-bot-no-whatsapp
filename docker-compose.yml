@@ -1,0 +1,58 @@
+services:
+  evolution-postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Configure POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Configure POSTGRES_DB in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: unless-stopped
+    depends_on:
+      evolution-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Set a strong EVOLUTION_API_KEY in .env}
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@evolution-postgres:5432/${POSTGRES_DB}?schema=public
+      CACHE_REDIS_ENABLED: "false"
+      CACHE_LOCAL_ENABLED: "true"
+      WEBSOCKET_REDIS_ENABLED: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  backend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - evolution-api
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: ${BACKEND_PORT:-8000}
+      BACKEND_API_TOKEN: ${BACKEND_API_TOKEN:?Set a strong BACKEND_API_TOKEN in .env}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:?Set a strong EVOLUTION_API_KEY in .env}
+      EVOLUTION_INSTANCE_NAME: ${EVOLUTION_INSTANCE_NAME:-whatsapp-demo}
+      EVOLUTION_API_URL: http://evolution-api:8080
+      QRCODE_PATH: /tmp/qrcode.png
+
+volumes:
+  postgres_data:
+    name: automationpybot_public_postgres_data_v1
+  evolution_instances:
+    name: automationpybot_public_evolution_instances_v1

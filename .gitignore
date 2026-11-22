@@ -1,0 +1,29 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Python virtual environments and generated files
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# WhatsApp/Evolution runtime state and generated QR codes
+evolution_instances/
+qrcode.png
+ListStudant.local.py
+ListStudant.private.py
+students.private.*
+
+# Local data, databases, logs, and editor files
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.vscode/
